@@ -27,7 +27,7 @@ class WorkoutSet {
 class WorkoutExercise {
     var name: String
     
-    @Relationship(deleteRule: .cascade, inverse: \WorkoutSet.exercise)
+    @Relationship(deleteRule: .cascade, inverse: \WorkoutSet.exercise) // means that "ghost sets" will be deleted
     var sets: [WorkoutSet] = []
     
     var workout: Workout?
@@ -41,7 +41,7 @@ class WorkoutExercise {
 class Workout {
     var id: UUID
     var startTime: Date
-    var endTime: Date?
+    var endTime: Date? // ? mark means it doesn't have to exist
     
     @Relationship(deleteRule: .cascade, inverse: \WorkoutExercise.workout)
     var exercises: [WorkoutExercise] = []
@@ -54,5 +54,16 @@ class Workout {
     var duration: TimeInterval {
         guard let end = endTime else { return 0 }
         return end.timeIntervalSince(startTime)
+    }
+}
+
+@Model
+class ExerciseTemplate {
+    var name: String
+    var bodyPart: String // e.g. "Chest", "Quads"
+    
+    init(name: String, bodyPart: String) {
+        self.name = name
+        self.bodyPart = bodyPart
     }
 }
