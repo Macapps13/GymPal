@@ -46,4 +46,29 @@ class WorkoutManager {
             }
         }
     }
+    
+    func finishWorkout() {
+        // Stop timer
+        timer?.invalidate()
+        timer = nil
+        
+        isWorkoutActive = false
+        restTimerActive = false
+        
+        // Update with final end time
+        currentWorkout?.endTime = Date()
+        
+        currentWorkout = nil
+        elapsedSeconds = 0
+    }
+    
+    func startRestTimer() {
+        restTimerActive = true
+        restTimeRemaining = selectedRestDuration
+    }
+    
+    func cancelRestTimer() {
+        restTimerActive = false
+        restTimeRemaining = 0
+    }
 }
