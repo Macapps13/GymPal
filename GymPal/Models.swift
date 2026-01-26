@@ -64,6 +64,6 @@ class ExerciseTemplate {
     
     init(name: String, bodyPart: String) {
         self.name = name
-        self.bodyPart = bodyPart
+        self.bodyPart = bodyPart	
     }
 }

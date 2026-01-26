@@ -1,0 +1,49 @@
+//
+//  WorkoutManager.swift
+//  GymPal
+//
+//  Created by Ben Alvaro on 26/1/2026.
+//
+
+import Foundation
+import Observation
+
+@Observable
+class WorkoutManager {
+    // Workout State
+    var isWorkoutActive: Bool = false
+    var elapsedSeconds: Int = 0
+    
+    // Reset Timer State
+    var restTimerActive: Bool = false
+    var restTimeRemaining: Int = 0
+    var selectedRestDuration: Int = 90 // Default rest timer is 1:30
+    
+    private var timer: Timer?
+    
+    var currentWorkout: Workout?
+    
+    func startWorkout() {
+        isWorkoutActive = true
+        elapsedSeconds = 0
+        
+        currentWorkout = Workout(startTime: Date())
+        
+        timer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { _ in
+            self.tick()
+        }
+    }
+    
+    func tick() {
+        elapsedSeconds += 1
+        
+        if restTimerActive {
+            if restTimeRemaining > 0 {
+                restTimeRemaining -= 1
+            } else {
+                restTimerActive = false
+                // TODO: Trigger an alert here
+            }
+        }
+    }
+}
