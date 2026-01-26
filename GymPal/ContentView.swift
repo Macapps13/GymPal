@@ -60,3 +60,56 @@ struct StartWorkoutView: View {
         }
     }
 }
+
+struct ActiveWorkoutView: View {
+    @Environment(WorkoutManager.self) var manager
+    
+    var body: some View {
+        NavigationStack {
+            VStack(spacing: 20) {
+                VStack {
+                    Text("Duration")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                    Text(formatTime(manager.elapsedSeconds))
+                        .font(.system(size: 60, weight: .bold, design: .rounded))
+                        .monospacedDigit()
+                        .contentTransition(.numericText())
+                }
+                .padding(.top, 40)
+                
+                Spacer()
+                
+                // Placeholder for Exercise List
+                Text("Exercises will go here")
+                    .foregroundStyle(.secondary)
+                
+                Spacer()
+                
+                // End Workout Button
+                Button(role: .destructive) {
+                    manager.finishWorkout()
+                } label: {
+                    Text("Finish Workout")
+                        .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(.borderedProminent)
+                .controlSize(.large)
+                .padding()
+            }
+            .navigationTitle("Current Session")
+            .navigationBarTitleDisplayMode(.inline)
+        }
+    }
+    
+    func formatTime(_ totalSeconds: Int) -> String {
+        let minutes = totalSeconds / 60
+        let seconds = totalSeconds % 60
+        return String(format: "%02d:%02d", minutes, seconds)
+    }
+}
+
+#Preview {
+    ContentView()
+        .environment(WorkoutManager())
+}
