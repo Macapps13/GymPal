@@ -72,84 +72,94 @@ struct ActiveWorkoutView: View {
     
     var body: some View {
         NavigationStack {
-            List {
-                Section {
-                    HStack {
-                        Spacer()
-                        Text(formatTime(manager.elapsedSeconds))
-                            .font(.system(size: 60, weight: .bold, design: .rounded))
-                            .monospacedDigit()
-                        Spacer()
+            ZStack(alignment: .bottom) {
+                List {
+                    Section {
+                        HStack {
+                            Spacer()
+                            Text(formatTime(manager.elapsedSeconds))
+                                .font(.system(size: 60, weight: .bold, design: .rounded))
+                                .monospacedDigit()
+                            Spacer()
+                        }
+                        .listRowBackground(Color.clear)
                     }
-                    .listRowBackground(Color.clear)
-                }
-                
-                if let workout = manager.currentWorkout {
-                    ForEach(workout.exercises) { exercise in
-                        Section(header: Text(exercise.name).font(.headline)) {
-                            HStack {
-                                Text("Set").font(.caption).frame(width: 20)
-                                Spacer()
-                                Text("Weight").font(.caption)
-                                Spacer()
-                                Text("Reps").font(.caption)
-                                Spacer()
-                                Image(systemName: "checkmark").font(.caption).opacity(0)
-                            }
-                            .foregroundStyle(.secondary)
-                            
-                            ForEach(Array(exercise.sets.enumerated()), id: \.element) { index, set in
-                                SetRowView(set: set, index: index + 1) {
-                                    manager.startRestTimer()
+                    
+                    if let workout = manager.currentWorkout {
+                        ForEach(workout.exercises) { exercise in
+                            Section(header: Text(exercise.name).font(.headline)) {
+                                HStack {
+                                    Text("Set").font(.caption).frame(width: 20)
+                                    Spacer()
+                                    Text("Weight").font(.caption)
+                                    Spacer()
+                                    Text("Reps").font(.caption)
+                                    Spacer()
+                                    Image(systemName: "checkmark").font(.caption).opacity(0)
+                                }
+                                .foregroundStyle(.secondary)
+                                
+                                ForEach(Array(exercise.sets.enumerated()), id: \.element) { index, set in
+                                    SetRowView(set: set, index: index + 1) {
+                                        manager.startRestTimer()
+                                    }
+                                }
+                                .onDelete { indexSet in
+                                    deleteSet(at: indexSet, from: exercise)
+                                }
+                                
+                                Button("Add Set") {
+                                    addSet(to: exercise)
                                 }
                             }
-                            .onDelete { indexSet in
-                                deleteSet(at: indexSet, from: exercise)
-                            }
-                            
-                            Button("Add Set") {
-                                addSet(to: exercise)
-                            }
+                        }
+                    }
+                    
+                    
+                    Section {
+                        Button("Add Exercise") {
+                            showExerciseSheet = true
                         }
                     }
                 }
                 
-
-                Section {
-                    Button("Add Exercise") {
-                        showExerciseSheet = true
+                if manager.restTimerActive {
+                    RestTimerView(seconds: manager.restTimeRemaining) {
+                        manager.cancelRestTimer()
                     }
+                    .transition(.move(edge: .bottom).combined(with: .opacity))
+                    .padding(.bottom, 100)
                 }
             }
-            .navigationTitle("Current Session")
-            .navigationBarTitleDisplayMode(.inline)
-            .sheet(isPresented: $showExerciseSheet) {
-                ExerciseSelectionView()
-            }
-            .safeAreaInset(edge: .bottom) {
-                Button(role: .destructive) {
-                    manager.finishWorkout()
-                } label: {
-                    Text("Finish Workout")
-                        .font(.headline)
-                        .frame(maxWidth: .infinity)
-                        .padding()
+                .animation(.spring(), value: manager.restTimerActive)
+                .navigationTitle("Current Session")
+                .navigationBarTitleDisplayMode(.inline)
+                .sheet(isPresented: $showExerciseSheet) {
+                    ExerciseSelectionView()
                 }
-                .buttonStyle(.borderedProminent)
-                .padding()
-                .background(.ultraThinMaterial)
-            }
-            .toolbar {
-                ToolbarItemGroup(placement: .keyboard) {
-                    Spacer()
-                    Button("Done") {
-                        UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
+                .safeAreaInset(edge: .bottom) {
+                    Button(role: .destructive) {
+                        manager.finishWorkout()
+                    } label: {
+                        Text("Finish Workout")
+                            .font(.headline)
+                            .frame(maxWidth: .infinity)
+                            .padding()
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .padding()
+                    .background(.ultraThinMaterial)
+                }
+                .toolbar {
+                    ToolbarItemGroup(placement: .keyboard) {
+                        Spacer()
+                        Button("Done") {
+                            UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
                     }
                 }
             }
         }
     }
-    
     func formatTime(_ totalSeconds: Int) -> String {
         let minutes = totalSeconds / 60
         let seconds = totalSeconds % 60
