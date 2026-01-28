@@ -5,9 +5,11 @@
 //  Created by Ben Alvaro on 25/1/2026.
 //
 import SwiftUI
+import SwiftData
 
 struct ContentView: View {
     @Environment(WorkoutManager.self) var manager
+    @Environment(\.modelContext) var modelContext
     
     var body: some View {
         TabView {
@@ -29,6 +31,9 @@ struct ContentView: View {
         
         .fullScreenCover(isPresented: Bindable(manager).isWorkoutActive) {
             ActiveWorkoutView()
+        }
+        .onAppear {
+            DataSeeder.seedExercises(context: modelContext)
         }
     }
 }
@@ -63,53 +68,110 @@ struct StartWorkoutView: View {
 
 struct ActiveWorkoutView: View {
     @Environment(WorkoutManager.self) var manager
+    @State private var showExerciseSheet = false
     
     var body: some View {
         NavigationStack {
-            VStack(spacing: 20) {
-                VStack {
-                    Text("Duration")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                    Text(formatTime(manager.elapsedSeconds))
-                        .font(.system(size: 60, weight: .bold, design: .rounded))
-                        .monospacedDigit()
-                        .contentTransition(.numericText())
+            List {
+                // Section 1: The Timer
+                Section {
+                    HStack {
+                        Spacer()
+                        Text(formatTime(manager.elapsedSeconds))
+                            .font(.system(size: 60, weight: .bold, design: .rounded))
+                            .monospacedDigit()
+                        Spacer()
+                    }
+                    .listRowBackground(Color.clear)
                 }
-                .padding(.top, 40)
                 
-                Spacer()
+                // Section 2: The Exercises
+                if let workout = manager.currentWorkout {
+                    ForEach(workout.exercises) { exercise in
+                        Section(header: Text(exercise.name).font(.headline)) {
+                            HStack {
+                                Text("Set").font(.caption).frame(width: 20)
+                                Spacer()
+                                Text("Weight").font(.caption)
+                                Spacer()
+                                Text("Reps").font(.caption)
+                                Spacer()
+                                Image(systemName: "checkmark").font(.caption).opacity(0)
+                            }
+                            .foregroundStyle(.secondary)
+                            
+                            ForEach(Array(exercise.sets.enumerated()), id: \.element) { index, set in
+                                SetRowView(set: set, index: index + 1) {
+                                    manager.startRestTimer()
+                                }
+                            }
+                            .onDelete { indexSet in
+                                deleteSet(at: indexSet, from: exercise)
+                            }
+                            
+                            Button("Add Set") {
+                                addSet(to: exercise)
+                            }
+                        }
+                    }
+                }
                 
-                // Placeholder for Exercise List
-                Text("Exercises will go here")
-                    .foregroundStyle(.secondary)
-                
-                Spacer()
-                
-                // End Workout Button
+                // Section 3: Add Exercise Button
+                Section {
+                    Button("Add Exercise") {
+                        showExerciseSheet = true
+                    }
+                }
+            }
+            .navigationTitle("Current Session")
+            .navigationBarTitleDisplayMode(.inline)
+            .sheet(isPresented: $showExerciseSheet) {
+                ExerciseSelectionView()
+            }
+            .safeAreaInset(edge: .bottom) {
+                // Move Finish button here to keep it visible above the TabBar
                 Button(role: .destructive) {
                     manager.finishWorkout()
                 } label: {
                     Text("Finish Workout")
+                        .font(.headline)
                         .frame(maxWidth: .infinity)
+                        .padding()
                 }
                 .buttonStyle(.borderedProminent)
-                .controlSize(.large)
                 .padding()
+                .background(.ultraThinMaterial)
             }
-            .navigationTitle("Current Session")
-            .navigationBarTitleDisplayMode(.inline)
-        }
-    }
+            .toolbar {
+                ToolbarItemGroup(placement: .keyboard) {
+                    Spacer()
+                    Button("Done") {
+                        UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
+                    }
+                }
+            }
+        } // This closes the NavigationStack
+    } // This closes the Body (Crucial!)
+
+    // --- Helper Functions (Inside the Struct, Outside the Body) ---
     
     func formatTime(_ totalSeconds: Int) -> String {
         let minutes = totalSeconds / 60
         let seconds = totalSeconds % 60
         return String(format: "%02d:%02d", minutes, seconds)
     }
+    
+    func addSet(to exercise: WorkoutExercise) {
+        let newSet = WorkoutSet(weight: 0, reps: 0)
+        exercise.sets.append(newSet)
+    }
+    
+    func deleteSet(at offsets: IndexSet, from exercise: WorkoutExercise) {
+        exercise.sets.remove(atOffsets: offsets)
+    }
 }
-
 #Preview {
     ContentView()
         .environment(WorkoutManager())
+        .modelContainer(for: [Workout.self, ExerciseTemplate.self], inMemory: true)
 }

@@ -71,4 +71,13 @@ class WorkoutManager {
         restTimerActive = false
         restTimeRemaining = 0
     }
+    
+    func addExercise(_ template: ExerciseTemplate) {
+        guard let workout = currentWorkout else {
+            return
+        }
+        
+        let newExercise = WorkoutExercise(name: template.name)
+        workout.exercises.append(newExercise)
+    }
 }
