@@ -73,7 +73,6 @@ struct ActiveWorkoutView: View {
     var body: some View {
         NavigationStack {
             List {
-                // Section 1: The Timer
                 Section {
                     HStack {
                         Spacer()
@@ -85,7 +84,6 @@ struct ActiveWorkoutView: View {
                     .listRowBackground(Color.clear)
                 }
                 
-                // Section 2: The Exercises
                 if let workout = manager.currentWorkout {
                     ForEach(workout.exercises) { exercise in
                         Section(header: Text(exercise.name).font(.headline)) {
@@ -116,7 +114,7 @@ struct ActiveWorkoutView: View {
                     }
                 }
                 
-                // Section 3: Add Exercise Button
+
                 Section {
                     Button("Add Exercise") {
                         showExerciseSheet = true
@@ -129,7 +127,6 @@ struct ActiveWorkoutView: View {
                 ExerciseSelectionView()
             }
             .safeAreaInset(edge: .bottom) {
-                // Move Finish button here to keep it visible above the TabBar
                 Button(role: .destructive) {
                     manager.finishWorkout()
                 } label: {
@@ -150,10 +147,8 @@ struct ActiveWorkoutView: View {
                     }
                 }
             }
-        } // This closes the NavigationStack
-    } // This closes the Body (Crucial!)
-
-    // --- Helper Functions (Inside the Struct, Outside the Body) ---
+        }
+    }
     
     func formatTime(_ totalSeconds: Int) -> String {
         let minutes = totalSeconds / 60
