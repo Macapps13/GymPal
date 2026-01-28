@@ -7,6 +7,7 @@
 
 import Foundation
 import Observation
+import SwiftData
 
 @Observable
 class WorkoutManager {
@@ -23,11 +24,13 @@ class WorkoutManager {
     
     var currentWorkout: Workout?
     
-    func startWorkout() {
+    func startWorkout(context: ModelContext) {
         isWorkoutActive = true
         elapsedSeconds = 0
         
-        currentWorkout = Workout(startTime: Date())
+        let newWorkout = Workout(startTime: Date())
+        currentWorkout = newWorkout
+        context.insert(newWorkout)
         
         timer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { _ in
             self.tick()

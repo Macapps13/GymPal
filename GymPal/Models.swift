@@ -60,7 +60,7 @@ class Workout {
 @Model
 class ExerciseTemplate {
     var name: String
-    var bodyPart: String // e.g. "Chest", "Quads"
+    var bodyPart: String// e.g. "Chest", "Quads"
     
     init(name: String, bodyPart: String) {
         self.name = name

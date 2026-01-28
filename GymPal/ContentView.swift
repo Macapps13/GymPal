@@ -18,7 +18,7 @@ struct ContentView: View {
                     Label("Workout", systemImage: "dumbbell.fill")
                 }
             
-            Text("History View") // Placeholder
+            HistoryView() // Placeholder
                 .tabItem {
                     Label("History", systemImage: "clock.fill")
                 }
@@ -40,6 +40,7 @@ struct ContentView: View {
 
 struct StartWorkoutView: View {
     @Environment(WorkoutManager.self) var manager
+    @Environment(\.modelContext) var modelContext
     
     var body: some View {
         NavigationStack {
@@ -47,7 +48,7 @@ struct StartWorkoutView: View {
                 Spacer()
                 
                 Button(action: {
-                    manager.startWorkout()
+                    manager.startWorkout(context: modelContext)
                 }) {
                     Text("Start Workout")
                         .font(.headline)
