@@ -75,6 +75,40 @@ struct ExerciseDetailView: View {
     
     var body: some View {
         List {
+            Section("Progression") {
+                if history.count < 2 {
+                    Text("Need at least 2 session to show progress. ")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .frame(maxWidth: .infinity, alignment: .center)
+                        .padding()
+                } else {
+                    Chart {
+                        ForEach(history, id: \.date) { entry in
+                            AreaMark(
+                                x: .value("Date", entry.date),
+                                y: .value("Volume", entry.volume)
+                            )
+                            .foregroundStyle(LinearGradient(
+                                colors: [.orange.opacity(0.4), .orange.opacity(0.1)],
+                                startPoint: .top,
+                                endPoint: .bottom
+                            ))
+                            .interpolationMethod(.catmullRom)
+                            
+                            LineMark(
+                                x: .value("Date", entry.date),
+                                y: .value("Volume", entry.volume)
+                            )
+                            .foregroundStyle(.orange)
+                            .interpolationMethod(.catmullRom)
+                            .lineStyle(StrokeStyle(lineWidth: 3))
+                        }
+                    }
+                    .frame(height: 200)
+                    .padding(.vertical)
+                }
+            }
             Section("All Time Best Volume") {
                 if let pr = history.map({ $0.volume }).max() {
                     Text("\(Int(pr)) kg")
