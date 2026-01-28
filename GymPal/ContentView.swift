@@ -18,12 +18,12 @@ struct ContentView: View {
                     Label("Workout", systemImage: "dumbbell.fill")
                 }
             
-            HistoryView() // Placeholder
+            HistoryView()
                 .tabItem {
                     Label("History", systemImage: "clock.fill")
                 }
             
-            Text("Exercises") // Placeholder
+            ExerciseLibraryView()
                 .tabItem {
                     Label("Exercises", systemImage: "list.bullet")
                 }
