@@ -8,33 +8,47 @@
 import Foundation
 import SwiftData
 
+struct ExerciseDTO: Decodable {
+    let name: String
+    let bodyPart: BodyPart
+    let equipment: ExerciseEquipment
+}
+
+@MainActor
 class DataSeeder {
-    static func seedExercises(context: ModelContext) {
+    static func seed(modelContext: ModelContext) {
         let descriptor = FetchDescriptor<ExerciseTemplate>()
-        
-        do {
-            let count = try context.fetchCount(descriptor)
-            if count > 0 {
-                return
-            }
-        } catch {
-            print("Failed to check database: \(error)")
+        if let count = try? modelContext.fetchCount(descriptor), count > 0 {
+            print("Data already exists (\(count) items). Skipping seed.")
             return
         }
-        
-        let defaults = [
-            ExerciseTemplate (name: "Bench Press", bodyPart: BodyPart.chest, equipment: ExerciseEquipment.dumbbells)
-        ]
-        
-        for exercise in defaults {
-            context.insert(exercise)
+
+        print("🔍 Attempting to find Exercises.json...")
+        guard let url = Bundle.main.url(forResource: "Exercises", withExtension: "JSON") else {
+            print("Error: Exercises.json NOT found in Bundle. Check Target Membership.")
+            return
         }
-        
+
+        print("Reading file data...")
+        guard let data = try? Data(contentsOf: url) else {
+            print("Error: Data was unreadable at URL.")
+            return
+        }
+
         do {
-            try context.save()
-            print("Database seeded successfully")
+            print("Attempting to decode JSON...")
+            let dtos = try JSONDecoder().decode([ExerciseDTO].self, from: data)
+            print("Decoded \(dtos.count) DTOs. Inserting into context...")
+            
+            for dto in dtos {
+                let template = ExerciseTemplate(name: dto.name, bodyPart: dto.bodyPart, equipment: dto.equipment)
+                modelContext.insert(template)
+            }
+            
+            try modelContext.save()
+            print("Successfully seeded 32 exercises.")
         } catch {
-            print("Failed to save seed data: \(error)")
+            print("Decoding Error: \(error)")
         }
     }
 }

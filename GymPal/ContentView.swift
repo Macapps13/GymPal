@@ -32,8 +32,8 @@ struct ContentView: View {
         .fullScreenCover(isPresented: Bindable(manager).isWorkoutActive) {
             ActiveWorkoutView()
         }
-        .onAppear {
-            DataSeeder.seedExercises(context: modelContext)
+        .task {
+            await DataSeeder.seed(modelContext: modelContext)
         }
     }
 }
@@ -259,8 +259,17 @@ struct ActiveWorkoutView: View {
         exercise.sets.remove(atOffsets: offsets)
     }
 }
+
+
 #Preview {
-    ContentView()
+    let config = ModelConfiguration(isStoredInMemoryOnly: true)
+    
+    let container = try! ModelContainer(
+        for: Workout.self, WorkoutTemplate.self, ExerciseTemplate.self,
+        configurations: config
+    )
+    
+    return ContentView()
         .environment(WorkoutManager())
-        .modelContainer(for: [Workout.self, WorkoutTemplate.self, ExerciseTemplate.self])
+        .modelContainer(container)
 }

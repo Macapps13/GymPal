@@ -90,7 +90,7 @@ enum ExerciseEquipment: String, Codable, CaseIterable, Identifiable {
     case bodyWeight = "Body Weight"
     case dumbbells = "Dumbbells"
     case barbell = "Barbell"
-    case cabel = "Cabels"
+    case cable = "Cables"
     
     var id: String { self.rawValue }
 }
