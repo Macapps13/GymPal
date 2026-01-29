@@ -22,7 +22,9 @@ struct HistoryView: View {
                     description: Text("Complete a session to see your progress here."))
                 } else {
                     ForEach(workouts) { workout in
-                        WorkoutRow(workout: workout)
+                        NavigationLink(destination: WorkoutDetailView(workout: workout)) {
+                            WorkoutRow(workout: workout)
+                        }
                     }
                     .onDelete(perform: deleteWorkouts)
                 }
@@ -42,23 +44,27 @@ struct WorkoutRow: View {
     let workout: Workout
     
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: 4) {
+            Text(workout.name)
+                .font(.headline)
+            
             HStack {
-                Text(workout.startTime.formatted(date: .abbreviated, time: .omitted))
-                    .font(.headline)
-                Spacer()
+                Text(workout.startTime.formatted(date: .abbreviated, time: .shortened))
                 
                 if let endTime = workout.endTime {
                     let duration = endTime.timeIntervalSince(workout.startTime) / 60
-                    Text("\(Int(duration)) min")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
+                    Text("• \(Int(duration)) min")
                 }
             }
+            .font(.caption)
+            .foregroundStyle(.secondary)
+            
+            // 3. Muscle Groups / Exercises Summary
             Text(workout.exercises.map { $0.name }.joined(separator: ", "))
-                .font(.caption)
+                .font(.caption2)
                 .foregroundStyle(.secondary)
                 .lineLimit(1)
+                .padding(.top, 2)
         }
         .padding(.vertical, 4)
     }

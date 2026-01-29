@@ -26,28 +26,32 @@ class WorkoutSet {
 @Model
 class WorkoutExercise {
     var name: String
+    var equipment: ExerciseEquipment
     
-    @Relationship(deleteRule: .cascade, inverse: \WorkoutSet.exercise) // means that "ghost sets" will be deleted
+    @Relationship(deleteRule: .cascade, inverse: \WorkoutSet.exercise) 
     var sets: [WorkoutSet] = []
     
     var workout: Workout?
     
-    init(name: String) {
+    init(name: String, equipment: ExerciseEquipment = .bodyWeight) {
         self.name = name
+        self.equipment = equipment
     }
 }
 
 @Model
 class Workout {
     var id: UUID
+    var name: String
     var startTime: Date
     var endTime: Date? // ? mark means it doesn't have to exist
     
     @Relationship(deleteRule: .cascade, inverse: \WorkoutExercise.workout)
     var exercises: [WorkoutExercise] = []
     
-    init(startTime: Date = Date()) {
+    init(startTime: Date = Date(), name: String = "New Workout") {
         self.id = UUID()
+        self.name = name
         self.startTime = startTime
     }
     
@@ -81,13 +85,25 @@ enum BodyPart: String, Codable, CaseIterable, Identifiable {
     }
 }
 
+enum ExerciseEquipment: String, Codable, CaseIterable, Identifiable {
+    case machine = "Machine"
+    case bodyWeight = "Body Weight"
+    case dumbbells = "Dumbbells"
+    case barbell = "Barbell"
+    case cabel = "Cabels"
+    
+    var id: String { self.rawValue }
+}
+
 @Model
 class ExerciseTemplate {
     var name: String
     var bodyPart: BodyPart
+    var equipment: ExerciseEquipment
     
-    init(name: String, bodyPart: BodyPart) {
+    init(name: String, bodyPart: BodyPart, equipment: ExerciseEquipment) {
         self.name = name
-        self.bodyPart = bodyPart	
+        self.bodyPart = bodyPart
+        self.equipment = equipment
     }
 }

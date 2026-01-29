@@ -16,7 +16,7 @@ struct GymPalApp: App {
         WindowGroup {
             ContentView()
         }
-        .modelContainer(for: [Workout.self, ExerciseTemplate.self])
+        .modelContainer(for: [Workout.self, WorkoutTemplate.self, ExerciseTemplate.self])
         .environment(workoutManager)
     }
 }

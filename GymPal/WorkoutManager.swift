@@ -24,11 +24,17 @@ class WorkoutManager {
     
     var currentWorkout: Workout?
     
-    func startWorkout(context: ModelContext) {
+    func startWorkout(context: ModelContext, templateExercise: [String] = []) {
         isWorkoutActive = true
         elapsedSeconds = 0
         
         let newWorkout = Workout(startTime: Date())
+        for name in templateExercise {
+            let exercise = WorkoutExercise(name: name)
+            exercise.sets.append(WorkoutSet(weight: 0, reps: 0))
+            newWorkout.exercises.append(exercise)
+        }
+        
         currentWorkout = newWorkout
         context.insert(newWorkout)
         
@@ -80,7 +86,7 @@ class WorkoutManager {
             return
         }
         
-        let newExercise = WorkoutExercise(name: template.name)
+        let newExercise = WorkoutExercise(name: template.name, equipment: template.equipment)
         newExercise.workout = workout
 
         let firstSet = WorkoutSet(weight: 0, reps: 0, isCompleted: false)

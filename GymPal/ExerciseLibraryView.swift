@@ -46,10 +46,23 @@ struct ExerciseLibraryView: View {
                                 HStack {
                                     Text(template.name)
                                     Spacer()
-                                    if let pr = calculatePR(for: template.name) {
-                                        Text("PR: \(Int(pr))kg")
-                                            .font(.caption)
-                                            .foregroundStyle(.orange)
+                                    HStack(spacing: 10) {
+                                        HStack(spacing: 4) {
+                                            Text(template.equipment.rawValue)
+                                        }
+                                        .font(.caption2)
+                                        .padding(.horizontal, 6)
+                                        .padding(.vertical, 2)
+                                        .background(Color.secondary.opacity(0.1))
+                                        .cornerRadius(4)
+                                        .foregroundStyle(.secondary)
+                                        
+                                        if let pr = calculatePR(for: template.name) {
+                                            Text("PR: \(Int(pr))kg")
+                                                .font(.caption)
+                                                .fontWeight(.semibold)
+                                                .foregroundStyle(.orange)
+                                        }
                                     }
                                 }
                             }
@@ -107,6 +120,12 @@ struct ExerciseDetailView: View {
     
     var body: some View {
         List {
+            LabeledContent("Equipment") {
+                HStack(spacing: 4) {
+                    Text(template.equipment.rawValue)
+                }
+                .foregroundStyle(.primary)
+            }
             Section("Progression") {
                 if history.count < 2 {
                     Text("Need at least 2 session to show progress. ")

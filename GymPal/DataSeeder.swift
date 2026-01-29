@@ -23,8 +23,7 @@ class DataSeeder {
         }
         
         let defaults = [
-            ExerciseTemplate (name: "Bench Press (Dumbbell)", bodyPart: BodyPart.chest),
-            ExerciseTemplate (name: "Preacher Curl (Machine)", bodyPart: BodyPart.biceps)
+            ExerciseTemplate (name: "Bench Press", bodyPart: BodyPart.chest, equipment: ExerciseEquipment.dumbbells)
         ]
         
         for exercise in defaults {

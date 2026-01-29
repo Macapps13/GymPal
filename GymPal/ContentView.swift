@@ -42,43 +42,120 @@ struct StartWorkoutView: View {
     @Environment(WorkoutManager.self) var manager
     @Environment(\.modelContext) var modelContext
     
+    // Fetch saved templates
+    @Query(sort: \WorkoutTemplate.createdAt, order: .reverse) var templates: [WorkoutTemplate]
+    
     var body: some View {
         NavigationStack {
-            VStack {
-                Spacer()
-                Text("Let's Lift!")
-                    .font(.largeTitle.bold())
-                    .multilineTextAlignment(.center)
-                    .frame(maxWidth: .infinity)
-                    .padding()
-                
-                Button(action: {
-                    manager.startWorkout(context: modelContext)
-                }) {
-                    Text("Start Workout")
-                        .font(.headline)
-                        .frame(maxWidth: .infinity)
-                        .padding()
-                        
+            if templates.isEmpty {
+                VStack {
+                    Spacer()
+                    
+                    Button(action: {
+                        manager.startWorkout(context: modelContext)
+                    }) {
+                        VStack(spacing: 15) {
+                            Image(systemName: "plus")
+                                .font(.system(size: 40, weight: .bold))
+                            Text("Start Empty\nWorkout")
+                                .font(.headline)
+                                .multilineTextAlignment(.center)
+                        }
+                        .frame(width: 200, height: 200)
+                        .background(Circle().fill(.orange.gradient)) // F1-style orange gradient
+                        .foregroundStyle(.white)
+                        .shadow(color: .orange.opacity(0.3), radius: 10, x: 0, y: 5)
+                    }
+                    .buttonStyle(.plain)
+                    
+                    Text("You don't have any routines yet.\nStart a workout to save one!")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                        .multilineTextAlignment(.center)
+                        .padding(.top, 20)
+                    
+                    Spacer()
                 }
-                .buttonStyle(.borderedProminent)
-                .controlSize(.large)
-                .padding()
-                
-                Spacer()
+                .navigationTitle("Workout")
+            } else {
+                List {
+                    Section {
+                        Button(action: {
+                            manager.startWorkout(context: modelContext)
+                        }) {
+                            HStack {
+                                Spacer()
+                                Text("Start Empty Workout")
+                                    .font(.headline)
+                                Spacer()
+                            }
+                            .padding(.vertical, 8)
+                        }
+                        .buttonStyle(.borderedProminent)
+                        .tint(.orange)
+                        .listRowInsets(EdgeInsets())
+                    }
+                    
+                    Section("My Routines") {
+                        ForEach(templates) { template in
+                            Button(action: {
+                                manager.startWorkout(context: modelContext, templateExercise: template.exerciseNames)
+                            }) {
+                                HStack {
+                                    VStack(alignment: .leading) {
+                                        Text(template.name)
+                                            .font(.headline)
+                                        Text(template.exerciseNames.joined(separator: ", "))
+                                            .font(.caption)
+                                            .foregroundStyle(.secondary)
+                                            .lineLimit(1)
+                                    }
+                                    Spacer()
+                                    Image(systemName: "chevron.right")
+                                        .foregroundStyle(.secondary)
+                                        .font(.caption)
+                                }
+                                .contentShape(Rectangle())
+                            }
+                            .buttonStyle(.plain)
+                        }
+                        .onDelete(perform: deleteTemplate)
+                    }
+                }
+                .navigationTitle("Workout")
             }
+        }
+    }
+    
+    func deleteTemplate(at offsets: IndexSet) {
+        for index in offsets {
+            modelContext.delete(templates[index])
         }
     }
 }
 
 struct ActiveWorkoutView: View {
     @Environment(WorkoutManager.self) var manager
+    @Environment(\.modelContext) var modelContext
     @State private var showExerciseSheet = false
     
     var body: some View {
+        
+        let nameBinding = Binding(
+                get: { manager.currentWorkout?.name ?? "New Workout" },
+                set: { manager.currentWorkout?.name = $0 }
+            )
+        
         NavigationStack {
             ZStack(alignment: .bottom) {
                 List {
+                    Section {
+                            TextField("Workout Name (e.g. Pull Day)", text: nameBinding)
+                                .font(.title2)
+                                .fontWeight(.bold)
+                                .multilineTextAlignment(.center)
+                    }
+                    
                     Section {
                         HStack {
                             Spacer()
@@ -92,7 +169,7 @@ struct ActiveWorkoutView: View {
                     
                     if let workout = manager.currentWorkout {
                         ForEach(workout.exercises) { exercise in
-                            Section(header: Text(exercise.name).font(.headline)) {
+                            Section {
                                 Grid(verticalSpacing: 12) {
                                     GridRow {
                                         Text("SET").font(.caption).gridColumnAlignment(.leading)
@@ -116,10 +193,12 @@ struct ActiveWorkoutView: View {
                                     addSet(to: exercise)
                                 }
                                 .buttonStyle(.borderless)
+                            } header: {
+                                ExerciseLabel(name: exercise.name, equipment: exercise.equipment)
+                                    .padding(.vertical, 4)
                             }
                         }
                     }
-                    
                     
                     Section {
                         Button("Add Exercise") {
@@ -183,5 +262,5 @@ struct ActiveWorkoutView: View {
 #Preview {
     ContentView()
         .environment(WorkoutManager())
-        .modelContainer(for: [Workout.self, ExerciseTemplate.self], inMemory: true)
+        .modelContainer(for: [Workout.self, WorkoutTemplate.self, ExerciseTemplate.self])
 }

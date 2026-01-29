@@ -15,6 +15,7 @@ struct CreateExerciseView: View {
     
     @State private var name: String = ""
     @State private var selectedBodyPart: BodyPart = .chest
+    @State private var selectedEquipment: ExerciseEquipment = .bodyWeight
     
     var body: some View {
         NavigationStack {
@@ -26,6 +27,12 @@ struct CreateExerciseView: View {
                         Text(part.rawValue).tag(part)
                     }
                 }
+                
+                Picker("Equipment", selection: $selectedEquipment) {
+                    ForEach(ExerciseEquipment.allCases) { part in
+                        Text(part.rawValue).tag(part)
+                    }
+                }
             }
             .navigationTitle("New Exercise")
             .toolbar {
@@ -34,7 +41,7 @@ struct CreateExerciseView: View {
                 }
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Create") {
-                        let newTemplate = ExerciseTemplate(name: name, bodyPart: selectedBodyPart)
+                        let newTemplate = ExerciseTemplate(name: name, bodyPart: selectedBodyPart, equipment: selectedEquipment)
                         modelContext.insert(newTemplate)
                         dismiss()
                     }

@@ -30,8 +30,7 @@ struct ExerciseSelectionView: View {
                         manager.addExercise(template)
                         dismiss()
                     } label: {
-                        Text(template.name)
-                            .foregroundStyle(.primary)
+                        ExerciseLabel(name: template.name, equipment: template.equipment)
                     }
                 }
                 .navigationTitle("Add Exercise")
