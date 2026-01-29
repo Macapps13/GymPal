@@ -13,15 +13,34 @@ struct ExerciseLibraryView: View {
     @Query(sort: \ExerciseTemplate.name) var templates: [ExerciseTemplate]
     @Query var allWorkouts: [Workout]
     
-    var groupedTemplates: [String: [ExerciseTemplate]] {
-        Dictionary(grouping: templates, by: { $0.bodyPart })
+    @State private var showCreateSheet = false
+    @State private var searchText: String = ""
+    
+    var filteredTemplates: [ExerciseTemplate] {
+        if searchText.isEmpty {
+            return templates
+        } else {
+            return templates.filter { $0.name.localizedCaseInsensitiveContains(searchText) }
+        }
+    }
+    
+    var groupedTemplates: [BodyPart: [ExerciseTemplate]] {
+        Dictionary(grouping: filteredTemplates, by: { $0.bodyPart })
     }
     
     var body: some View {
         NavigationStack {
             List {
-                ForEach(groupedTemplates.keys.sorted(), id: \.self) { bodyPart in
-                    Section(header: Text(bodyPart)) {
+                ForEach(BodyPart.allCases.filter { groupedTemplates[$0] != nil }, id: \.self) { bodyPart in
+                    Section(header:
+                                HStack {
+                        Image(systemName: bodyPart.icon)
+                            .foregroundStyle(.orange)
+                        Text(bodyPart.rawValue)
+                            .font(.headline)
+                            .textCase(.none)
+                        }
+                    ) {
                         ForEach(groupedTemplates[bodyPart] ?? []) { template in
                             NavigationLink(destination: ExerciseDetailView(template: template)) {
                                 HStack {
@@ -39,6 +58,19 @@ struct ExerciseLibraryView: View {
                 }
             }
             .navigationTitle(Text("Exercises"))
+            .toolbar() {
+                ToolbarItem(placement: .primaryAction) {
+                    Button {
+                        showCreateSheet = true
+                    } label: {
+                        Image(systemName: "plus")
+                    }
+                }
+            }
+            .sheet(isPresented: $showCreateSheet) {
+                CreateExerciseView()
+            }
+            .searchable(text: $searchText, prompt: "Search Exercises")
         }
     }
     

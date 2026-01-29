@@ -46,6 +46,11 @@ struct StartWorkoutView: View {
         NavigationStack {
             VStack {
                 Spacer()
+                Text("Let's Lift!")
+                    .font(.largeTitle.bold())
+                    .multilineTextAlignment(.center)
+                    .frame(maxWidth: .infinity)
+                    .padding()
                 
                 Button(action: {
                     manager.startWorkout(context: modelContext)
@@ -62,7 +67,6 @@ struct StartWorkoutView: View {
                 
                 Spacer()
             }
-            .navigationTitle("Let's Lift!")
         }
     }
 }
@@ -89,29 +93,29 @@ struct ActiveWorkoutView: View {
                     if let workout = manager.currentWorkout {
                         ForEach(workout.exercises) { exercise in
                             Section(header: Text(exercise.name).font(.headline)) {
-                                HStack {
-                                    Text("Set").font(.caption).frame(width: 20)
-                                    Spacer()
-                                    Text("Weight").font(.caption)
-                                    Spacer()
-                                    Text("Reps").font(.caption)
-                                    Spacer()
-                                    Image(systemName: "checkmark").font(.caption).opacity(0)
-                                }
-                                .foregroundStyle(.secondary)
-                                
-                                ForEach(Array(exercise.sets.enumerated()), id: \.element) { index, set in
-                                    SetRowView(set: set, index: index + 1) {
-                                        manager.startRestTimer()
+                                Grid(verticalSpacing: 12) {
+                                    GridRow {
+                                        Text("SET").font(.caption).gridColumnAlignment(.leading)
+                                        Text("WEIGHT").font(.caption).gridColumnAlignment(.trailing)
+                                        Text("REPS").font(.caption).gridColumnAlignment(.trailing)
+                                        Color.clear.frame(width: 30, height: 1) // Space for the checkmark
+                                    }
+                                    .foregroundStyle(.secondary)
+                                    .fontWeight(.bold)
+                                    
+                                    Divider()
+                                    ForEach(Array(exercise.sets.enumerated()), id: \.element) { index, set in
+                                        SetRowView(set: set, index: index + 1) {
+                                            manager.startRestTimer()
+                                        }
                                     }
                                 }
-                                .onDelete { indexSet in
-                                    deleteSet(at: indexSet, from: exercise)
-                                }
+                                .padding(.vertical, 8)
                                 
                                 Button("Add Set") {
                                     addSet(to: exercise)
                                 }
+                                .buttonStyle(.borderless)
                             }
                         }
                     }

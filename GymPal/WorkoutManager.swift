@@ -81,6 +81,13 @@ class WorkoutManager {
         }
         
         let newExercise = WorkoutExercise(name: template.name)
+        newExercise.workout = workout
+
+        let firstSet = WorkoutSet(weight: 0, reps: 0, isCompleted: false)
+        firstSet.exercise = newExercise
+
+        newExercise.sets.append(firstSet)
         workout.exercises.append(newExercise)
     }
 }
+

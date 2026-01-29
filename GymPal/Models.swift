@@ -57,12 +57,36 @@ class Workout {
     }
 }
 
+enum BodyPart: String, Codable, CaseIterable, Identifiable {
+    case chest = "Chest"
+    case back = "Back"
+    case shoulders = "Shoulders"
+    case core = "Core"
+    case legs = "Legs"
+    case biceps = "Biceps"
+    case triceps = "Triceps"
+    
+    var id: String { self.rawValue }
+    
+    var icon: String {
+        switch self {
+        case .chest: return "figure.strengthtraining.traditional"
+        case .back: return "figure.rower"
+        case .shoulders: return "figure.arms.open"
+        case .biceps: return "figure.curling"
+        case .triceps: return "figure.arms.open"
+        case .legs: return "figure.run"
+        case .core: return "figure.core.training"
+        }
+    }
+}
+
 @Model
 class ExerciseTemplate {
     var name: String
-    var bodyPart: String// e.g. "Chest", "Quads"
+    var bodyPart: BodyPart
     
-    init(name: String, bodyPart: String) {
+    init(name: String, bodyPart: BodyPart) {
         self.name = name
         self.bodyPart = bodyPart	
     }
