@@ -15,12 +15,14 @@ struct ExerciseLibraryView: View {
     
     @State private var showCreateSheet = false
     @State private var searchText: String = ""
+    @State private var selectedEquipment: ExerciseEquipment? = nil 
     
     var filteredTemplates: [ExerciseTemplate] {
-        if searchText.isEmpty {
-            return templates
-        } else {
-            return templates.filter { $0.name.localizedCaseInsensitiveContains(searchText) }
+        templates.filter { template in
+            let searchMatch = searchText.isEmpty || template.name.localizedCaseInsensitiveContains(searchText)
+            let equipmentMatch = selectedEquipment == nil || template.equipment == selectedEquipment
+            
+            return searchMatch && equipmentMatch
         }
     }
     
@@ -39,7 +41,7 @@ struct ExerciseLibraryView: View {
                         Text(bodyPart.rawValue)
                             .font(.headline)
                             .textCase(.none)
-                        }
+                    }
                     ) {
                         ForEach(groupedTemplates[bodyPart] ?? []) { template in
                             NavigationLink(destination: ExerciseDetailView(template: template)) {
@@ -47,15 +49,13 @@ struct ExerciseLibraryView: View {
                                     Text(template.name)
                                     Spacer()
                                     HStack(spacing: 10) {
-                                        HStack(spacing: 4) {
-                                            Text(template.equipment.rawValue)
-                                        }
-                                        .font(.caption2)
-                                        .padding(.horizontal, 6)
-                                        .padding(.vertical, 2)
-                                        .background(Color.secondary.opacity(0.1))
-                                        .cornerRadius(4)
-                                        .foregroundStyle(.secondary)
+                                        Text(template.equipment.rawValue)
+                                            .font(.caption2)
+                                            .padding(.horizontal, 6)
+                                            .padding(.vertical, 2)
+                                            .background(Color.secondary.opacity(0.1))
+                                            .cornerRadius(4)
+                                            .foregroundStyle(.secondary)
                                         
                                         if let pr = calculatePR(for: template.name) {
                                             Text("PR: \(Int(pr))kg")
@@ -70,13 +70,29 @@ struct ExerciseLibraryView: View {
                     }
                 }
             }
-            .navigationTitle(Text("Exercises"))
-            .toolbar() {
+            .navigationTitle("Exercises")
+            .toolbar {
                 ToolbarItem(placement: .primaryAction) {
-                    Button {
-                        showCreateSheet = true
-                    } label: {
-                        Image(systemName: "plus")
+                    HStack {
+                        Menu {
+                            Button("All Equipment", systemImage: "checkmark") { selectedEquipment = nil }
+                                .symbolVariant(selectedEquipment == nil ? .fill : .none)
+                            
+                            Divider()
+                            
+                            ForEach(ExerciseEquipment.allCases) { equip in
+                                Button(equip.rawValue) { selectedEquipment = equip }
+                            }
+                        } label: {
+                            Image(systemName: "line.3.horizontal.decrease.circle")
+                                .symbolVariant(selectedEquipment == nil ? .none : .fill)
+                        }
+                        
+                        Button {
+                            showCreateSheet = true
+                        } label: {
+                            Image(systemName: "plus")
+                        }
                     }
                 }
             }
@@ -90,7 +106,7 @@ struct ExerciseLibraryView: View {
     func calculatePR(for name: String) -> Double? {
         let allSets = allWorkouts
             .flatMap { $0.exercises }
-            .filter { $0.name == name}
+            .filter { $0.name == name }
             .flatMap { $0.sets }
         return allSets.map { $0.weight * Double($0.reps) }.max()
     }

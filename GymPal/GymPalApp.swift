@@ -7,6 +7,7 @@
 
 import SwiftUI
 import SwiftData
+import UserNotifications
 
 @main
 struct GymPalApp: App {
@@ -18,5 +19,13 @@ struct GymPalApp: App {
         }
         .modelContainer(for: [Workout.self, WorkoutTemplate.self, ExerciseTemplate.self])
         .environment(workoutManager)
+    }
+}
+
+func requestNotificationPermission() {
+    UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound, .badge]) { granted, error in
+        if granted {
+            print("Permission granted")
+        }
     }
 }

@@ -3,7 +3,7 @@
 //  GymPal
 //
 //  Created by Ben Alvaro on 25/1/2026.
-//
+//  
 import SwiftUI
 import SwiftData
 
@@ -33,7 +33,11 @@ struct ContentView: View {
             ActiveWorkoutView()
         }
         .task {
-            await DataSeeder.seed(modelContext: modelContext)
+            DataSeeder.seed(modelContext: modelContext)
+            manager.requestNotificationPermission()
+        }
+        .onAppear {
+            manager.fetchActiveWorkout(context: modelContext)
         }
     }
 }
@@ -140,110 +144,116 @@ struct ActiveWorkoutView: View {
     @State private var showExerciseSheet = false
     
     var body: some View {
-        
         let nameBinding = Binding(
-                get: { manager.currentWorkout?.name ?? "New Workout" },
-                set: { manager.currentWorkout?.name = $0 }
-            )
+            get: { manager.currentWorkout?.name ?? "New Workout" },
+            set: { manager.currentWorkout?.name = $0 }
+        )
         
         NavigationStack {
-            ZStack(alignment: .bottom) {
-                List {
-                    Section {
-                            TextField("Workout Name (e.g. Pull Day)", text: nameBinding)
-                                .font(.title2)
+            List {
+                Section {
+                    TextField("Workout Name (e.g. Pull Day)", text: nameBinding)
+                        .font(.title2)
+                        .fontWeight(.bold)
+                        .multilineTextAlignment(.center)
+                }
+                
+                Section {
+                    HStack {
+                        Spacer()
+                        Text(formatTime(manager.elapsedSeconds))
+                            .font(.system(size: 60, weight: .bold, design: .rounded))
+                            .monospacedDigit()
+                        Spacer()
+                    }
+                    .listRowBackground(Color.clear)
+                }
+                
+                if let workout = manager.currentWorkout {
+                    ForEach(workout.exercises) { exercise in
+                        Section {
+                            Grid(verticalSpacing: 12) {
+                                GridRow {
+                                    Text("SET").font(.caption).gridColumnAlignment(.leading)
+                                    Text("WEIGHT").font(.caption).gridColumnAlignment(.trailing)
+                                    Text("REPS").font(.caption).gridColumnAlignment(.trailing)
+                                    Color.clear.frame(width: 30, height: 1)
+                                }
+                                .foregroundStyle(.secondary)
                                 .fontWeight(.bold)
-                                .multilineTextAlignment(.center)
-                    }
-                    
-                    Section {
-                        HStack {
-                            Spacer()
-                            Text(formatTime(manager.elapsedSeconds))
-                                .font(.system(size: 60, weight: .bold, design: .rounded))
-                                .monospacedDigit()
-                            Spacer()
-                        }
-                        .listRowBackground(Color.clear)
-                    }
-                    
-                    if let workout = manager.currentWorkout {
-                        ForEach(workout.exercises) { exercise in
-                            Section {
-                                Grid(verticalSpacing: 12) {
-                                    GridRow {
-                                        Text("SET").font(.caption).gridColumnAlignment(.leading)
-                                        Text("WEIGHT").font(.caption).gridColumnAlignment(.trailing)
-                                        Text("REPS").font(.caption).gridColumnAlignment(.trailing)
-                                        Color.clear.frame(width: 30, height: 1) // Space for the checkmark
-                                    }
-                                    .foregroundStyle(.secondary)
-                                    .fontWeight(.bold)
-                                    
-                                    Divider()
-                                    ForEach(Array(exercise.sets.enumerated()), id: \.element) { index, set in
-                                        SetRowView(set: set, index: index + 1) {
-                                            manager.startRestTimer()
-                                        }
-                                    }
-                                }
-                                .padding(.vertical, 8)
                                 
-                                Button("Add Set") {
-                                    addSet(to: exercise)
+                                Divider()
+                                ForEach(Array(exercise.sets.enumerated()), id: \.element.id) { index, set in
+                                    SetRowView(set: set, index: index + 1) {
+                                        manager.startRestTimer()
+                                    }
                                 }
-                                .buttonStyle(.borderless)
-                            } header: {
-                                ExerciseLabel(name: exercise.name, equipment: exercise.equipment)
-                                    .padding(.vertical, 4)
+                                .onDelete { indexSet in
+                                    deleteSet(at: indexSet, from: exercise)
+                                }
                             }
-                        }
-                    }
-                    
-                    Section {
-                        Button("Add Exercise") {
-                            showExerciseSheet = true
+                            .padding(.vertical, 8)
+                            
+                            Button("Add Set") {
+                                addSet(to: exercise)
+                            }
+                            .buttonStyle(.borderless)
+                        } header: {
+                            ExerciseLabel(name: exercise.name, equipment: exercise.equipment)
+                                .padding(.vertical, 4)
                         }
                     }
                 }
                 
+                Section {
+                    Button("Add Exercise") {
+                        showExerciseSheet = true
+                    }
+                }
+            }
+            // 1. TOP INSET: This handles the Rest Timer
+            .safeAreaInset(edge: .top) {
                 if manager.restTimerActive {
                     RestTimerView(seconds: manager.restTimeRemaining) {
                         manager.cancelRestTimer()
                     }
-                    .transition(.move(edge: .bottom).combined(with: .opacity))
-                    .padding(.bottom, 100)
+                    .transition(.move(edge: .top).combined(with: .opacity))
+                    // Ensure it doesn't get cut off by the nav bar z-index
+                    .zIndex(1)
                 }
             }
-                .animation(.spring(), value: manager.restTimerActive)
-                .navigationTitle("Current Session")
-                .navigationBarTitleDisplayMode(.inline)
-                .sheet(isPresented: $showExerciseSheet) {
-                    ExerciseSelectionView()
+            // 2. BOTTOM INSET: This handles the Finish Button
+            .safeAreaInset(edge: .bottom) {
+                Button(role: .destructive) {
+                    manager.finishWorkout()
+                } label: {
+                    Text("Finish Workout")
+                        .font(.headline)
+                        .frame(maxWidth: .infinity)
+                        .padding()
                 }
-                .safeAreaInset(edge: .bottom) {
-                    Button(role: .destructive) {
-                        manager.finishWorkout()
-                    } label: {
-                        Text("Finish Workout")
-                            .font(.headline)
-                            .frame(maxWidth: .infinity)
-                            .padding()
-                    }
-                    .buttonStyle(.borderedProminent)
-                    .padding()
-                    .background(.ultraThinMaterial)
-                }
-                .toolbar {
-                    ToolbarItemGroup(placement: .keyboard) {
-                        Spacer()
-                        Button("Done") {
-                            UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
+                .buttonStyle(.borderedProminent)
+                .padding()
+                .background(.ultraThinMaterial)
+            }
+            // 3. Modifiers
+            .animation(.spring(), value: manager.restTimerActive)
+            .navigationTitle("Current Session")
+            .navigationBarTitleDisplayMode(.inline)
+            .sheet(isPresented: $showExerciseSheet) {
+                ExerciseSelectionView()
+            }
+            .toolbar {
+                ToolbarItemGroup(placement: .keyboard) {
+                    Spacer()
+                    Button("Done") {
+                        UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
                     }
                 }
             }
         }
     }
+    
     func formatTime(_ totalSeconds: Int) -> String {
         let minutes = totalSeconds / 60
         let seconds = totalSeconds % 60
@@ -251,10 +261,18 @@ struct ActiveWorkoutView: View {
     }
     
     func addSet(to exercise: WorkoutExercise) {
-        let newSet = WorkoutSet(weight: 0, reps: 0)
+        var newReps = 0
+        var newWeight = 0.0
+        
+        if let lastSet = exercise.sets.last {
+            newReps = lastSet.reps
+            newWeight = lastSet.weight
+        }
+        
+        let newSet = WorkoutSet(weight: newWeight, reps: newReps)
         exercise.sets.append(newSet)
     }
-    
+
     func deleteSet(at offsets: IndexSet, from exercise: WorkoutExercise) {
         exercise.sets.remove(atOffsets: offsets)
     }

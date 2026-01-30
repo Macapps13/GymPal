@@ -8,9 +8,11 @@
 import Foundation
 import Observation
 import SwiftData
+import UserNotifications
 
 @Observable
 class WorkoutManager {
+    
     // Workout State
     var isWorkoutActive: Bool = false
     var elapsedSeconds: Int = 0
@@ -18,15 +20,26 @@ class WorkoutManager {
     // Reset Timer State
     var restTimerActive: Bool = false
     var restTimeRemaining: Int = 0
-    var selectedRestDuration: Int = 90 // Default rest timer is 1:30
-    
+    private var restEndDate: Date?
     private var timer: Timer?
     
     var currentWorkout: Workout?
     
+    func fetchActiveWorkout(context: ModelContext) {
+        let descriptor = FetchDescriptor<Workout>(
+            predicate: #Predicate { $0.endTime == nil }
+        )
+        
+        if let existingWorkout = try? context.fetch(descriptor).first {
+            self.currentWorkout = existingWorkout
+            self.isWorkoutActive = true
+            self.startGlobalTimer()
+        }
+    }
+
+    
     func startWorkout(context: ModelContext, templateExercise: [String] = []) {
         isWorkoutActive = true
-        elapsedSeconds = 0
         
         let newWorkout = Workout(startTime: Date())
         for name in templateExercise {
@@ -38,24 +51,32 @@ class WorkoutManager {
         currentWorkout = newWorkout
         context.insert(newWorkout)
         
-        timer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { _ in
-            self.tick()
+        startGlobalTimer()
+    }
+        
+    private func startGlobalTimer() {
+        timer?.invalidate()
+        timer = Timer.scheduledTimer(withTimeInterval: 0.1, repeats: true) { [weak self] _ in
+            self?.tick()
         }
     }
     
     func tick() {
-        elapsedSeconds += 1
+        if let start = currentWorkout?.startTime {
+            elapsedSeconds = Int(Date().timeIntervalSince(start))
+        }
         
-        if restTimerActive {
-            if restTimeRemaining > 0 {
-                restTimeRemaining -= 1
+        if restTimerActive, let end = restEndDate {
+            let remaining = Int(end.timeIntervalSinceNow)
+            if remaining > 0 {
+                restTimeRemaining = remaining
             } else {
+                restTimeRemaining = 0
                 restTimerActive = false
-                // TODO: Trigger an alert here
             }
         }
     }
-    
+
     func finishWorkout() {
         // Stop timer
         timer?.invalidate()
@@ -71,14 +92,35 @@ class WorkoutManager {
         elapsedSeconds = 0
     }
     
-    func startRestTimer() {
-        restTimerActive = true
-        restTimeRemaining = selectedRestDuration
+    func startRestTimer(seconds: Int = 60) {
+            restEndDate = Date().addingTimeInterval(TimeInterval(seconds))
+            restTimerActive = true
+            
+        scheduleRestNotification(at: restEndDate!)
+            
+            if timer == nil { startGlobalTimer() }
     }
     
+    private func scheduleRestNotification(at date: Date) {
+        let content = UNMutableNotificationContent()
+        content.title = "Rest Over! 🏎️"
+        content.body = "Time for your next set. Let's go!"
+        content.sound = .default // Or use a custom "pit wall" sound
+        
+        let timeInterval = date.timeIntervalSinceNow
+        if timeInterval > 0 {
+            let trigger = UNTimeIntervalNotificationTrigger(timeInterval: timeInterval, repeats: false)
+            let request = UNNotificationRequest(identifier: "RestTimer", content: content, trigger: trigger)
+            
+            UNUserNotificationCenter.current().add(request)
+        }
+    }
+        
     func cancelRestTimer() {
         restTimerActive = false
-        restTimeRemaining = 0
+        restEndDate = nil
+        
+        UNUserNotificationCenter.current().removePendingNotificationRequests(withIdentifiers: ["RestTimer"])
     }
     
     func addExercise(_ template: ExerciseTemplate) {
@@ -95,5 +137,14 @@ class WorkoutManager {
         newExercise.sets.append(firstSet)
         workout.exercises.append(newExercise)
     }
+    
+    func requestNotificationPermission() {
+        UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound, .badge]) { granted, error in
+            if granted {
+                print("Permission granted")
+            }
+        }
+    }
 }
+
 
