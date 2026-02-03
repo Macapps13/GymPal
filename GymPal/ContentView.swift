@@ -142,6 +142,7 @@ struct ActiveWorkoutView: View {
     @Environment(WorkoutManager.self) var manager
     @Environment(\.modelContext) var modelContext
     @State private var showExerciseSheet = false
+    @State private var showFinishAlert = false
     
     var body: some View {
         let nameBinding = Binding(
@@ -152,7 +153,7 @@ struct ActiveWorkoutView: View {
         NavigationStack {
             List {
                 Section {
-                    TextField("Workout Name (e.g. Pull Day)", text: nameBinding)
+                    TextField("Workout Name", text: nameBinding)
                         .font(.title2)
                         .fontWeight(.bold)
                         .multilineTextAlignment(.center)
@@ -183,14 +184,17 @@ struct ActiveWorkoutView: View {
                                 .fontWeight(.bold)
                                 
                                 Divider()
+                                
                                 ForEach(Array(exercise.sets.enumerated()), id: \.element.id) { index, set in
                                     SetRowView(set: set, index: index + 1) {
                                         manager.startRestTimer()
                                     }
+                                    onDelete:  { if let setIndex = exercise.sets.firstIndex(where: { $0.id == set.id }) {
+                                        exercise.sets.remove(at: setIndex)
+                                    }
+                                    }
                                 }
-                                .onDelete { indexSet in
-                                    deleteSet(at: indexSet, from: exercise)
-                                }
+                                
                             }
                             .padding(.vertical, 8)
                             
@@ -199,8 +203,22 @@ struct ActiveWorkoutView: View {
                             }
                             .buttonStyle(.borderless)
                         } header: {
-                            ExerciseLabel(name: exercise.name, equipment: exercise.equipment)
-                                .padding(.vertical, 4)
+                            HStack {
+                                ExerciseLabel(name: exercise.name, equipment: exercise.equipment)
+                                Spacer()
+                                Menu {
+                                    Button(role: .destructive) {
+                                        deleteExercise(exercise, from: workout)
+                                    } label: {
+                                        Label("Delete Exercise", systemImage: "trash")
+                                    }
+                                } label: {
+                                    Image(systemName: "ellipsis.circle")
+                                        .font(.title2)
+                                        .foregroundStyle(.orange)
+                                }
+                            }
+                            .padding(.vertical, 4)
                         }
                     }
                 }
@@ -209,23 +227,31 @@ struct ActiveWorkoutView: View {
                     Button("Add Exercise") {
                         showExerciseSheet = true
                     }
+                    .buttonStyle(.borderless) // Added to ensure hit-testing works well in List
                 }
             }
-            // 1. TOP INSET: This handles the Rest Timer
+            .scrollDismissesKeyboard(.interactively)
+            // 👇 FIX: Moved onTapGesture to a background layer
+            // This prevents it from intercepting button taps
+            .background {
+                Color.clear
+                    .contentShape(Rectangle())
+                    .onTapGesture {
+                        hideKeyboard()
+                    }
+            }
             .safeAreaInset(edge: .top) {
                 if manager.restTimerActive {
                     RestTimerView(seconds: manager.restTimeRemaining) {
                         manager.cancelRestTimer()
                     }
                     .transition(.move(edge: .top).combined(with: .opacity))
-                    // Ensure it doesn't get cut off by the nav bar z-index
                     .zIndex(1)
                 }
             }
-            // 2. BOTTOM INSET: This handles the Finish Button
             .safeAreaInset(edge: .bottom) {
                 Button(role: .destructive) {
-                    manager.finishWorkout()
+                    showFinishAlert = true
                 } label: {
                     Text("Finish Workout")
                         .font(.headline)
@@ -236,20 +262,19 @@ struct ActiveWorkoutView: View {
                 .padding()
                 .background(.ultraThinMaterial)
             }
-            // 3. Modifiers
+            .alert("Finish Workout?", isPresented: $showFinishAlert) {
+                Button("Cancel", role: .cancel) { }
+                Button("Finish", role: .destructive) {
+                    manager.finishWorkout()
+                }
+            } message: {
+                Text("Are you sure you're done? This will save your session.")
+            }
             .animation(.spring(), value: manager.restTimerActive)
             .navigationTitle("Current Session")
             .navigationBarTitleDisplayMode(.inline)
             .sheet(isPresented: $showExerciseSheet) {
                 ExerciseSelectionView()
-            }
-            .toolbar {
-                ToolbarItemGroup(placement: .keyboard) {
-                    Spacer()
-                    Button("Done") {
-                        UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
-                    }
-                }
             }
         }
     }
@@ -258,6 +283,10 @@ struct ActiveWorkoutView: View {
         let minutes = totalSeconds / 60
         let seconds = totalSeconds % 60
         return String(format: "%02d:%02d", minutes, seconds)
+    }
+    
+    func hideKeyboard() {
+            UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
     }
     
     func addSet(to exercise: WorkoutExercise) {
@@ -276,6 +305,12 @@ struct ActiveWorkoutView: View {
     func deleteSet(at offsets: IndexSet, from exercise: WorkoutExercise) {
         exercise.sets.remove(atOffsets: offsets)
     }
+    
+    func deleteExercise(_ exercise: WorkoutExercise, from workout: Workout) {
+            if let index = workout.exercises.firstIndex(of: exercise) {
+                workout.exercises.remove(at: index)
+            }
+        }
 }
 
 
